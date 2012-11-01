@@ -69,13 +69,13 @@ Shoes.app :width => 750, :height => 550 do
       mac_stack = stack :width => "100%", :height => "25%" do
         border black, :strokewidth => 2
         background  gray(0.5)
-        @static_mac = get_current_mac
         @macadress = para "Current mac: #{get_current_mac}", :align => 'center'
         @customac = edit_line "", :top => 80, :right => 34, :width => 120, :height => 20
         mac_first = button "Change mac adress", :top => 105, :right => 8 do
           if system("sudo ifconfig #{@l.text} down") 
             if @customac.text == ""
               get_random_mac
+              @macadress.replace "Current mac: #{get_current_mac}"
             else
               get_a_mac(@customac.text)
             end
@@ -84,12 +84,14 @@ Shoes.app :width => 750, :height => 550 do
               button "Change", :top => 105, :right => 100 do
                 if @customac.text == ""
                   get_random_mac
+                  @macadress.replace "Current mac: #{get_current_mac}"
                 else
                   get_a_mac(@customac.text)
                 end
               end
               button "Restore", :top => 105, :right => 5 do
-                get_a_mac(@static_mac)
+                get_permanent_mac
+                @macadress.replace "Current mac: #{get_permanent_mac}"
               end
             end
           end

@@ -1,11 +1,16 @@
 def get_current_mac
-  # Retrieve and retrieved mac from ifconfig and removing the line return
-  `ifconfig wlan0 |  grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | tr -d '\n'`
+  # Retrieve current mac from macchanger
+  `macchanger -s wlan0 | awk '/Current/ { print $3 }'`
+
+end
+
+def get_permanent_mac
+  # Retrieve permanent mac from macchanger
+  `macchanger -s wlan0 | awk '/Permanent/ { print $3 }'`
 end
 
 def get_random_mac
   `sudo macchanger -r wlan0`
-  @macadress.replace "Current mac: #{get_current_mac}"
 end
 
 def get_a_mac(mac)
@@ -13,6 +18,10 @@ def get_a_mac(mac)
   if system("sudo macchanger -m #{mac} wlan0")
     @macadress.replace "Current mac: #{get_current_mac}"
   else
-    @macadress.replace "Invalid mac adress. \n Current mac: #{get_current_mac}"
+    if `sudo macchanger -m #{mac} wlan0 | awk '/It/ { print $3 }'` == "same\n"
+      @macadress.replace "Same mac adress. \n Current mac: #{get_current_mac}"
+    else
+      @macadress.replace "Invalid mac adress. \n Current mac: #{get_current_mac}"
+    end
   end
 end
