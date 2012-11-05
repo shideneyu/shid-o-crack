@@ -1,8 +1,22 @@
-Shoes.app :width => 750, :height => 550 do
+module Shoes::Types
+  def centr # milieu horizontal
+   left=(self.parent.width-self.style[:width])/2
+   self.move(left,self.top)
+  end
+
+  def middle # milieu vertical
+   top=(self.parent.height-self.style[:height])
+   self.move(self.left,top) 
+  end
+end
+
+Shoes.app :width => 780, :height => 550 do
   require 'thread'
   require 'getmac'
+
+  @status = 0
   semaphore = Mutex.new
-  @wid = 750
+  @wid = 780
   @hei = 550
   if "root\n" == `whoami`
     background rgb(100, 100, 200)
@@ -33,67 +47,92 @@ Shoes.app :width => 750, :height => 550 do
     end
 
     flow :width => "#{0.25*@wid}", :height => @hei do
-      stack :width => "100%", :height => "20%" do
+      stack :width => "100%", :height => "10%" do
         border black, :strokewidth => 2
         status = 3
-        mmess = "Please set monitor mode on:"
-        @monitormode = para mmess, :align => 'center'
+        imess = "Choose an interface"
+        net_interfaces = `ls /sys/class/net | sed -e 's/^\(.*\)$/"\1"/' | paste -sd "," | tr -d '\n'`
 
-        a = `ls /sys/class/net | sed -e 's/^\(.*\)$/"\1"/' | paste -sd "," | tr -d '\n'`
-        @l = list_box :items => a.split(',') do
-        if status
-          mmmess = "Monitor mode enabled on #{@l.text} \n Change interface:"
-        elsif status == 0
-          mmess = "Monitor mode can't be set on #{@l.text} Change interface:"
-        else
-          mmess = "Please set monitor mode on: "
-        end
-          if system("sudo ifconfig #{@l.text} down") 
-            if system("sudo iwconfig #{@l.text} mode monitor")
-              if system("sudo ifconfig #{@l.text} up")
-                @mmess.replace "Mode monitor enabled on #{@l.text}"
-                @monitormode.text = mmess
-              else
-                alert("Wifi interface canno't be restarted")
-                exit
-              end
+        @monitormode = para imess, :align => 'center'
+        @netcard_substack = stack :width=> -85, :height=>-25 do
+          @netcard = list_box :items => net_interfaces.split(','), :width => 100 do
+            @macadress.replace "Current mac on #{@netcard.text}: #{get_current_mac}"
+            # Bug of shoes: If I hid @netcardmode_stack only, there's a problem on display.
+            unless @net_interfaces == ""
+              @mmode_text.replace "Choose a mode for #{@netcard.text}:"
             else
-              alert("Mode monitor not enabled")
+              @mmode_text.replace "Please choose a wifi interface"
             end
-          else
-            alert("The wifi interface canno't be closed.")
+            @mmode_list.choose ""
+            @mmode_text.show
+            @netcardmode_substack.show
+            @status = 1
           end
-
         end
+        @netcard_substack.middle.centr
       end
+
+      @netcardmode_stack = stack :width => "100%", :height => "10%" do
+        border black, :strokewidth => 2
+        @mmode_text = para "", :align => 'center', :hidden => true
+        @netcardmode_substack = stack :width=> -85, :height=>-25, :hidden => true do
+          @mmode_list = list_box :items => ["Monitor", ""], :width => 100 do
+            if @mmode_list.text == "monitor"
+              if system("sudo ifconfig #{@netcard.text} down") 
+                if system("sudo iwconfig #{@netcard.text} mode monitor")
+                  if system("sudo ifconfig #{@netcard.text} up")
+                    # Notification status change
+                  else
+                    alert("Wifi interface canno't be restarted")
+                    exit
+                  end
+                else
+                  alert("Mode monitor not enabled")
+                end
+              else
+                alert("The wifi interface canno't be closed.")
+              end
+            end
+          end
+        end
+        @netcardmode_substack.centr.middle
+      end
+
       mac_stack = stack :width => "100%", :height => "25%" do
         border black, :strokewidth => 2
         background  gray(0.5)
-        @macadress = para "Current mac: #{get_current_mac}", :align => 'center'
+        @macadress = para "Please choose a wifi interface", :align => 'center'
         @customac = edit_line "", :top => 80, :right => 34, :width => 120, :height => 20
         mac_first = button "Change mac adress", :top => 105, :right => 8 do
-          if system("sudo ifconfig #{@l.text} down") 
-            if @customac.text == ""
-              get_random_mac
-              @macadress.replace "Current mac: #{get_current_mac}"
-            else
-              get_a_mac(@customac.text)
-            end
-            mac_first.remove
-            mac_stack.append do 
-              button "Change", :top => 105, :right => 100 do
-                if @customac.text == ""
-                  get_random_mac
-                  @macadress.replace "Current mac: #{get_current_mac}"
-                else
-                  get_a_mac(@customac.text)
+
+          if @status == 1
+            if system("sudo ifconfig #{@netcard.text} down")
+              if @customac.text == ""
+                get_random_mac
+                @macadress.replace "Current mac on #{@netcard.text}: #{get_current_mac}"
+                # Notification status change
+              else
+                get_a_mac(@customac.text)
+              end
+              mac_first.remove
+              mac_stack.append do 
+                button "Change", :top => 105, :right => 100 do
+                  if @customac.text == ""
+                    get_random_mac
+                    @macadress.replace "Current mac on #{@netcard.text}: #{get_current_mac}"
+                    # Notification status change
+                  else
+                    get_a_mac(@customac.text)
+                  end
+                end
+                button "Restore", :top => 105, :right => 5 do
+                  get_a_mac(get_permanent_mac)
+                  # Notification status change
                 end
               end
-              button "Restore", :top => 105, :right => 5 do
-                get_permanent_mac
-                @macadress.replace "Current mac: #{get_permanent_mac}"
-              end
             end
+          else
+            alert "You have to choose a network card first"
           end
         end
       end
