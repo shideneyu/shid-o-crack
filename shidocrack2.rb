@@ -14,7 +14,7 @@ Shoes.app :width => 780, :height => 550 do
   require 'thread'
   require 'getmac'
 
-  @status = 0
+  @interface_set = 0
   semaphore = Mutex.new
   @wid = 780
   @hei = 550
@@ -49,38 +49,35 @@ Shoes.app :width => 780, :height => 550 do
     flow :width => "#{0.25*@wid}", :height => @hei do
       stack :width => "100%", :height => "10%" do
         border black, :strokewidth => 2
-        status = 3
-        imess = "Choose an interface"
         net_interfaces = `ls /sys/class/net | sed -e 's/^\(.*\)$/"\1"/' | paste -sd "," | tr -d '\n'`
-
-        @monitormode = para imess, :align => 'center'
+        para "Choose an interface:", :align => 'center'
         @netcard_substack = stack :width=> -85, :height=>-25 do
-          @netcard = list_box :items => net_interfaces.split(','), :width => 100 do
-            @macadress.replace "Current mac on #{@netcard.text}: #{get_current_mac}"
-            # Bug of shoes: If I hid @netcardmode_stack only, there's a problem on display.
+          @netcard_list = list_box :items => net_interfaces.split(','), :width => 100 do
+            @mac_adress_para.replace "Current mac on #{@netcard_list.text}: #{get_current_mac}"
+            # Bug of shoes: If I hid the parent stack only, there's a problem on display.
             unless @net_interfaces == ""
-              @mmode_text.replace "Choose a mode for #{@netcard.text}:"
+              @netcard_mode_para.replace "Choose a mode for #{@netcard_list.text}:"
             else
-              @mmode_text.replace "Please choose a wifi interface"
+              @netcard_mode_para.replace "Please choose a wifi interface"
             end
             @mmode_list.choose ""
-            @mmode_text.show
-            @netcardmode_substack.show
-            @status = 1
+            @netcard_mode_para.show
+            @netcard_mode_substack.show
+            @interface_set = 1
           end
         end
         @netcard_substack.middle.centr
       end
 
-      @netcardmode_stack = stack :width => "100%", :height => "10%" do
+      stack :width => "100%", :height => "10%" do
         border black, :strokewidth => 2
-        @mmode_text = para "", :align => 'center', :hidden => true
-        @netcardmode_substack = stack :width=> -85, :height=>-25, :hidden => true do
+        @netcard_mode_para = para "", :align => 'center', :hidden => true
+        @netcard_mode_substack = stack :width=> -85, :height=>-25, :hidden => true do
           @mmode_list = list_box :items => ["Monitor", ""], :width => 100 do
             if @mmode_list.text == "monitor"
-              if system("sudo ifconfig #{@netcard.text} down") 
-                if system("sudo iwconfig #{@netcard.text} mode monitor")
-                  if system("sudo ifconfig #{@netcard.text} up")
+              if system("sudo ifconfig #{@netcard_list.text} down") 
+                if system("sudo iwconfig #{@netcard_list.text} mode monitor")
+                  if system("sudo ifconfig #{@netcard_list.text} up")
                     # Notification status change
                   else
                     alert("Wifi interface canno't be restarted")
@@ -95,34 +92,32 @@ Shoes.app :width => 780, :height => 550 do
             end
           end
         end
-        @netcardmode_substack.centr.middle
+        @netcard_mode_substack.centr.middle
       end
 
       mac_stack = stack :width => "100%", :height => "25%" do
         border black, :strokewidth => 2
         background  gray(0.5)
-        @macadress = para "Please choose a wifi interface", :align => 'center'
-        @customac = edit_line "", :top => 80, :right => 34, :width => 120, :height => 20
-        mac_first = button "Change mac adress", :top => 105, :right => 8 do
+        @mac_adress_para = para "Please choose a wifi interface", :align => 'center'
+        @customac_para = edit_line "", :top => 80, :right => 34, :width => 120, :height => 20
+        button_one_mac = button "Change mac adress", :top => 105, :right => 8 do
 
-          if @status == 1
-            if system("sudo ifconfig #{@netcard.text} down")
-              if @customac.text == ""
+          if @interface_set == 1
+            if system("sudo ifconfig #{@netcard_list.text} down")
+              if @customac_para.text == ""
                 get_random_mac
-                @macadress.replace "Current mac on #{@netcard.text}: #{get_current_mac}"
                 # Notification status change
               else
-                get_a_mac(@customac.text)
+                get_a_mac(@customac_para.text)
               end
-              mac_first.remove
+              button_one_mac.remove
               mac_stack.append do 
                 button "Change", :top => 105, :right => 100 do
-                  if @customac.text == ""
+                  if @customac_para.text == ""
                     get_random_mac
-                    @macadress.replace "Current mac on #{@netcard.text}: #{get_current_mac}"
                     # Notification status change
                   else
-                    get_a_mac(@customac.text)
+                    get_a_mac(@customac_para.text)
                   end
                 end
                 button "Restore", :top => 105, :right => 5 do
