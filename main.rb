@@ -15,7 +15,10 @@ Shoes.app :width => 780, :height => 550 do
   require 'stacks/netcard'
   require 'stacks/netcard_mode'
   require 'stacks/mac_changing'
+  require 'stacks/specified_attack'
+  require 'stacks/attack_choice.rb'
 
+      
   @interface_set = 0
   semaphore = Mutex.new
   @wid = 780
@@ -61,7 +64,7 @@ Shoes.app :width => 780, :height => 550 do
       end
 
       # Netcard mode stack
-      stack :width => "100%", :height => "10%" do
+      netcard_mode_stack = stack :width => "100%", :height => "10%" do
         # Netcard mode stack
         border black, :strokewidth => 2
         # Calling netcard_mode stack content
@@ -75,11 +78,20 @@ Shoes.app :width => 780, :height => 550 do
         # Calling mac changing stack content
         mac_changing_stack_content
       end
+      
+      # Attack choice stack
       stack :width => "100%", :height => "10%" do
         border black, :strokewidth => 2
-        banner "A poems"
+        # Calling attack_choice stack content
+        attack_choice_stack_content
       end
-      stack :width => "100%", :height => "45%" do
+
+      @specified_attack_stack = stack :width => "100%", :height => "10%" do
+        # Calling specified_attack stack content
+        specified_attack_stack_content
+        border black, :strokewidth => 2
+      end
+      stack :width => "100%", :height => "35%" do
         border black, :strokewidth => 2
         banner "A poems"
       end
